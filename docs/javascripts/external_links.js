@@ -13,8 +13,17 @@ document$.subscribe(function () {
         continue; // Skip this link
       }
 
-      // Exclude links that include github.com/OWASP and raw.githubusercontent.com/OWASP and github.com/cpholguera
-      if (link.href.includes('github.com/OWASP') || link.href.includes('raw.githubusercontent.com/OWASP') || link.href.includes('github.com/cpholguera')) {
+      // Exclude links that match any of the excluded substrings
+      const excludedSubstrings = [
+        'github.com/OWASP',
+        'raw.githubusercontent.com/OWASP',
+        'github.com/cpholguera',
+        'infosec.exchange/@OWASP_MAS',
+        'bsky.app/profile/owasp-mas.bsky.social',
+        'owasp.slack.com',
+        'mailto:'
+      ];
+      if (excludedSubstrings.some(sub => link.href.includes(sub))) {
         continue; // Skip this link
       }
 
