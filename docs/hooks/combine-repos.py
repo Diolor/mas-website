@@ -11,11 +11,12 @@ def on_pre_build(config):
 
     docs_dir = Path("docs")
 
-    structure_mastg(docs_dir)
+    mastg_repo = structure_mastg(docs_dir)
     maswe_repo = structure_maswe(docs_dir)
     masvs_repo = structure_masvs(docs_dir)
 
     # Save the values so they can dynamically be watched for changes later
+    config['extra']['mastg_repo'] = mastg_repo
     config['extra']['maswe_repo'] = maswe_repo
     config['extra']['masvs_repo'] = masvs_repo
 
@@ -77,35 +78,37 @@ def structure_masvs(docs_dir):
 
 def structure_mastg(docs_dir):
     # Move all MASTG folders into the docs folder
-    mastg_dir = docs_dir / "MASTG"
+    mastg_repo_dir = locate_external_repo("mastg")
+    mastg_local_dir = docs_dir / "MASTG"
     images_dir = docs_dir / "assets" / "Images"
 
-    mastg_dir.mkdir(parents=True, exist_ok=True)
+    mastg_local_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
 
     directories = ["knowledge", "tests", "techniques", "tools", "apps", "demos", "rules", "utils", "best-practices"]
 
     for d in directories:
-        dest = mastg_dir / d
-        shutil.rmtree(dest, ignore_errors=True)
-        shutil.copytree(d, dest)
+        src = mastg_repo_dir / d
+        dest = mastg_local_dir / d
+        clean_and_copy(src, dest)
 
     # Copy beta tests
     for file in Path("tests-beta").rglob("*"):
         if file.is_file():
             rel_path = file.relative_to("tests-beta")
-            dest_path = mastg_dir / "tests" / rel_path
+            dest_path = mastg_local_dir / "tests" / rel_path
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(file, dest_path)
 
-    # Copy top-level .md files
-    for mdfile in Path("Document").glob("0x0*.md"):
-        shutil.copy(mdfile, mastg_dir / mdfile.name)
+    # Copy top-level .md files from mastg_repo_dir/Document
+    document_dir = mastg_repo_dir / "Document"
+    for mdfile in (document_dir).glob("0x0*.md"):
+        shutil.copy(mdfile, mastg_local_dir / mdfile.name)
 
-    shutil.copy("Document/index.md", mastg_dir / "index.md")
+    shutil.copy(document_dir / "index.md", mastg_local_dir / "index.md")
 
     # Copy the images directory in its entirety
-    shutil.copytree("Document/Images", images_dir, dirs_exist_ok=True)
+    shutil.copytree(document_dir / "Images", images_dir, dirs_exist_ok=True)
 
     # Specific subdir replacements
     rel_paths = {
@@ -117,11 +120,11 @@ def structure_mastg(docs_dir):
     }
 
     for subdir, rel_img in rel_paths.items():
-        files = find_md_files(mastg_dir / subdir)
+        files = find_md_files(mastg_local_dir / subdir)
         batch_replace(files, [("src=\"Images/", f"src=\"{rel_img}")])
 
     # Generic MASTG markdown fix
-    batch_replace(find_md_files(mastg_dir), [
+    batch_replace(find_md_files(mastg_local_dir), [
         ("src=\"Images/", "src=\"../../../assets/Images/"),
         ("Document/", "")
     ])
