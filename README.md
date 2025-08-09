@@ -2,7 +2,9 @@
 
 This repository contains the source and configuration for the **OWASP Mobile Application Security Project website** ([mas.owasp.org](https://mas.owasp.org/)).
 
-## OWASP MAS Resources Overview
+This website aggregates, organizes, and presents documentation from the main MAS resources using [MkDocs](https://www.mkdocs.org/) and the [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) theme.
+
+Each resource lives in its own GitHub repository:
 
 | Resource | Description | GitHub Repo |
 |----------|-------------|-------------|
@@ -12,13 +14,24 @@ This repository contains the source and configuration for the **OWASP Mobile App
 
 ## Development
 
-This website aggregates, organizes, and presents documentation from the main MAS resources using [MkDocs](https://www.mkdocs.org/) and the [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) theme.
+The two key components of the repo are:
 
-The site structure is as follows:
+- The `docs/` directory, which contains all the source files for the website.
+- The `mkdocs.yml` file, which configures the MkDocs site.
 
-- All source files are in the `docs/` directory.
-- Navigation and content aggregation are configured in `mkdocs.yml`.
-- The site uses plugins such as `mkdocs-awesome-pages-plugin` and `mkdocs-material`.
+The site uses a range of MkDocs features and plugins in the `mkdocs.yml` file, including:
+
+- **Material for MkDocs theme** (`theme`) with custom icons, logo, and palette switching (light/dark mode). See [Material for MkDocs documentation](https://squidfunk.github.io/mkdocs-material/) for details.
+- **Navigation tabs, sticky tabs, instant navigation, and tracking** (`theme.features`) for improved UX.
+- **Search** (`plugins: search`) with suggestions and sharing.
+- **Tags** (`plugins: tags`) and **blog** (`plugins: blog`) plugins for dynamic content organization and news posts.
+- **Awesome Pages** (`plugins: awesome-pages`) for flexible navigation structure.
+- **Redirects plugin** (`plugins: redirects`) with custom Python hooks (`hooks`) for legacy and dynamic page redirects.
+- **Custom hooks** (`hooks`) for dynamic content, banners, cross-references, demo buttons, and more.
+- **Markdown extensions** (`markdown_extensions`): meta, TOC with permalinks, admonition, tables, fenced code blocks, emoji, progress bars, tabbed content, snippets, and more.
+- **Extra CSS/JS** (`extra_css`, `extra_javascript`) for tables, navigation, filtering, and external links.
+- **Google Analytics integration** (`extra.analytics`).
+- **Copyright and license info** (`copyright`) displayed in the footer.
 
 ## Local Development
 
