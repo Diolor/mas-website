@@ -19,8 +19,17 @@ jobs:
         id: venv
         with:
           python-version: 3.x 
-          cache-dependency-path: src/scripts/requirements.txt
-          install-cmd: pip install -r src/scripts/requirements.txt
+          cache-dependency-path: requirements.txt
+          install-cmd: pip install -r requirements.txt
+
+      - name: Get Latest MASTG Release Tag
+        run: echo "MASTG_VERSION=$(curl -s https://api.github.com/repos/OWASP/mastg/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+        with:
+          repository: "OWASP/mastg"
+          fetch-depth: 1
+          path: mastg/
 
       - uses: actions/checkout@v4
         with:
