@@ -93,9 +93,10 @@ def structure_mastg(docs_dir):
         clean_and_copy(src, dest)
 
     # Copy beta tests
-    for file in Path("tests-beta").rglob("*"):
+    tests_beta_dir = mastg_repo_dir / "tests-beta"
+    for file in tests_beta_dir.rglob("*"):
         if file.is_file():
-            rel_path = file.relative_to("tests-beta")
+            rel_path = file.relative_to(tests_beta_dir)
             dest_path = mastg_local_dir / "tests" / rel_path
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(file, dest_path)
