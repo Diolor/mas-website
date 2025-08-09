@@ -12,16 +12,6 @@ validation:
     absolute_links: ignore
 
 watch:
-  - ../mastg/techniques
-  - ../mastg/knowledge
-  - ../mastg/tests
-  - ../mastg/tests-beta
-  - ../mastg/tools
-  - ../mastg/apps
-  - ../mastg/demos
-  - ../mastg/rules
-  - ../mastg/utils
-  - ../mastg/best-practices
   - docs/contributing
   - docs/donate
   - docs/news
