@@ -134,7 +134,7 @@ def structure_mastg(docs_dir):
 
 def locate_external_repo(repo_name):
 
-    repo_candidates = [Path("..") / repo_name, Path(".") / repo_name]
+    repo_candidates = [Path("..") / repo_name, Path(".") / repo_name, Path(repo_name)]
     repo_location = next((p for p in repo_candidates if p.is_dir()), None)
 
     if not repo_location:
