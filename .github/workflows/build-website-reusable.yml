@@ -6,45 +6,69 @@ on:
         required: false
         type: boolean
         default: false
+      sources_override_json:
+        required: false
+        type: string
+        default: "{}"
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Checkout mas-website self
+        if: ${{ github.repository == 'OWASP/mas-website' }}
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Checkout mas-website main for external callers
+        if: ${{ github.repository != 'OWASP/mas-website' }}
+        uses: actions/checkout@v4
+        with:
+          repository: OWASP/mas-website
+          ref: main
+          fetch-depth: 1
+
 
       - name: Setup Python virtual environment and install dependencies
         uses: getsentry/action-setup-venv@v2.1.1
         id: venv
         with:
-          python-version: 3.x 
+          python-version: 3.x
           cache-dependency-path: requirements.txt
           install-cmd: pip install -r requirements.txt
 
       - name: Get Latest MASTG Release Tag
         run: echo "MASTG_VERSION=$(curl -s https://api.github.com/repos/OWASP/mastg/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
+      - name: Checkout MASTG
+        uses: actions/checkout@v4
         with:
           repository: "OWASP/mastg"
+          ref: ${{ fromJson(inputs.sources_override_json)['OWASP/mastg'] || 'master' }}
           fetch-depth: 1
           path: mastg/
 
-      - uses: actions/checkout@v4
+      - name: Checkout MASWE
+        uses: actions/checkout@v4
         with:
           repository: "OWASP/maswe"
+          ref: ${{ fromJson(inputs.sources_override_json)['OWASP/maswe'] || 'main' }}
           fetch-depth: 1
           path: maswe/
 
       - name: Get Latest MASVS Release Tag
         run: echo "MASVS_VERSION=$(curl -s https://api.github.com/repos/OWASP/masvs/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
+      - name: Checkout MASVS
+        uses: actions/checkout@v4
         with:
           repository: "OWASP/masvs"
+          ref: ${{ fromJson(inputs.sources_override_json)['OWASP/masvs'] || 'master' }}
           fetch-depth: 1
           path: masvs/
+
       - name: Generate MASVS yaml
         run: python3 ./masvs/tools/generate_masvs_yaml.py -v ${{env.MASVS_VERSION}} -i ./masvs/Document -c ./masvs/controls
 
