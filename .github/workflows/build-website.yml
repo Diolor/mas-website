@@ -1,13 +1,20 @@
 name: Build GitHub Pages
 on:
   workflow_dispatch:
+    inputs:
+      sources_override_json:
+        description: JSON map of repo to ref overrides, for example {"OWASP/mastg":"feature-x"}
+        required: false
+        default: "{}"
   push:
     branches:
-      - master
+      - main
+
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.actor == 'cpholguera' || github.actor == 'sushi2k' || github.actor == 'TheDauntless'
     uses: ./.github/workflows/build-website-reusable.yml
     with:
       deploy: true
+      sources_override_json: ${{ github.event_name == 'workflow_dispatch' && inputs.sources_override_json || '{}' }}
     secrets: inherit
-    if: github.actor == 'cpholguera' || github.actor == 'sushi2k' || github.actor == 'TheDauntless'
