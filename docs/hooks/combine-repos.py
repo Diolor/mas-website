@@ -85,7 +85,22 @@ def structure_mastg(docs_dir):
     mastg_local_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
 
+    # Log detailed path information for debugging
+    log.info(f"MASTG repo dir (absolute): {mastg_repo_dir.absolute()}")
+    log.info(f"Current working directory: {Path.cwd().absolute()}")
+    log.info(f"Docs dir: {docs_dir.absolute()}")
+    
+    # Log directory existence before attempting to copy
     directories = ["knowledge", "tests", "techniques", "tools", "apps", "demos", "rules", "utils", "best-practices"]
+    for d in directories:
+        src_path = mastg_repo_dir / d
+        log.info(f"Checking directory '{d}': exists = {src_path.exists()}")
+        if not src_path.exists():
+            # List parent directory contents to help diagnose the issue
+            try:
+                log.info(f"Contents of {mastg_repo_dir}: {list(mastg_repo_dir.iterdir())}")
+            except Exception as e:
+                log.info(f"Could not list contents of {mastg_repo_dir}: {str(e)}")
 
     for d in directories:
         src = mastg_repo_dir / d
@@ -133,14 +148,28 @@ def structure_mastg(docs_dir):
 
 
 def locate_external_repo(repo_name):
-
-    repo_candidates = [Path("..") / repo_name, Path(".") / repo_name, Path(repo_name)]
+    # Try multiple possible locations with detailed logging
+    repo_candidates = [
+        Path("..") / repo_name,  # Parent directory
+        Path(".") / repo_name,   # Current directory
+        Path(repo_name),         # Direct path
+        Path("..") / ".." / repo_name  # Two levels up (in case of nested checkout)
+    ]
+    
+    # Log all candidate paths we're checking
+    for candidate in repo_candidates:
+        log.info(f"Checking {repo_name} at: {candidate.absolute()}, exists: {candidate.is_dir()}")
+    
     repo_location = next((p for p in repo_candidates if p.is_dir()), None)
 
     if not repo_location:
-        raise Exception(f"Error: Please clone {repo_name} to the same parent directory as mastg: cd .. && git clone https://github.com/OWASP/{repo_name}.git")
+        # If we couldn't find the repo, log the directory structure to help diagnose
+        log.info(f"Current directory: {Path.cwd().absolute()}")
+        log.info(f"Parent directory contents: {list(Path('..').absolute().iterdir())}")
+        log.info(f"Current directory contents: {list(Path('.').iterdir())}")
+        raise Exception(f"Error: Could not find {repo_name} repository in any of the expected locations.")
 
-    log.info(f"Using {repo_name.upper()} directory: {repo_location}")
+    log.info(f"Using {repo_name.upper()} directory: {repo_location.absolute()}")
 
     return repo_location
 
@@ -149,6 +178,15 @@ def clean_and_copy(source, destination):
     if destination.exists():
         shutil.rmtree(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Check if source exists before copying
+    if not source.exists():
+        log.error(f"Source directory does not exist: {source.absolute()}")
+        log.info(f"Creating empty directory at {destination} instead")
+        destination.mkdir(parents=True, exist_ok=True)
+        return
+    
+    log.info(f"Copying from {source.absolute()} to {destination}")
     shutil.copytree(source, destination, dirs_exist_ok=True)
 
 def clean_and_move(source, destination):

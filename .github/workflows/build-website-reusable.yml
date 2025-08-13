@@ -49,6 +49,14 @@ jobs:
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/mastg'] || 'master' }}
           fetch-depth: 1
           path: mastg/
+          
+      - name: Debug MASTG directory
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "MASTG directory exists: $(test -d mastg && echo 'Yes' || echo 'No')"
+          echo "MASTG directory contents:"
+          ls -la mastg/
+          echo "MASTG knowledge directory exists: $(test -d mastg/knowledge && echo 'Yes' || echo 'No')"
 
       - name: Checkout MASWE
         uses: actions/checkout@v4
