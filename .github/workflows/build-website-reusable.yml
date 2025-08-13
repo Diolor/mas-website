@@ -44,9 +44,9 @@ jobs:
 
       - name: Create repository directory structure
         run: |
-          mkdir -p ../mastg
-          mkdir -p ../maswe
-          mkdir -p ../masvs
+          mkdir -p repos/mastg
+          mkdir -p repos/maswe
+          mkdir -p repos/masvs
 
       - name: Checkout MASTG
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
           repository: "OWASP/mastg"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/mastg'] || 'master' }}
           fetch-depth: 1
-          path: ../mastg
+          path: repos/mastg
 
       - name: Checkout MASWE
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
           repository: "OWASP/maswe"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/maswe'] || 'main' }}
           fetch-depth: 1
-          path: ../maswe
+          path: repos/maswe
 
       - name: Get Latest MASVS Release Tag
         run: echo "MASVS_VERSION=$(curl -s https://api.github.com/repos/OWASP/masvs/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
@@ -73,10 +73,10 @@ jobs:
           repository: "OWASP/masvs"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/masvs'] || 'master' }}
           fetch-depth: 1
-          path: ../masvs
+          path: repos/masvs
 
       - name: Generate MASVS yaml
-        run: python3 ../masvs/tools/generate_masvs_yaml.py -v ${{env.MASVS_VERSION}} -i ../masvs/Document -c ../masvs/controls
+        run: python3 repos/masvs/tools/generate_masvs_yaml.py -v ${{env.MASVS_VERSION}} -i repos/masvs/Document -c repos/masvs/controls
 
       - name: Build website (no deploy)
         if: ${{ !inputs.deploy }}

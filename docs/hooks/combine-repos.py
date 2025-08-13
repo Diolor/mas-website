@@ -157,10 +157,11 @@ def structure_mastg(docs_dir):
 
 
 def locate_external_repo(repo_name):
-    # Simplified: always check parent directory first, then current directory
+    # Check multiple possible locations
     repo_candidates = [
-        Path("..") / repo_name,  # Parent directory
-        Path(".") / repo_name,   # Current directory
+        Path("repos") / repo_name,  # New primary location in repos/ subdirectory
+        Path("..") / repo_name,     # Parent directory (original location)
+        Path(".") / repo_name,      # Current directory
     ]
     
     # Log which paths we're checking
