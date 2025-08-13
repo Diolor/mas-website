@@ -42,21 +42,19 @@ jobs:
       - name: Get Latest MASTG Release Tag
         run: echo "MASTG_VERSION=$(curl -s https://api.github.com/repos/OWASP/mastg/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
 
+      - name: Create repository directory structure
+        run: |
+          mkdir -p ../mastg
+          mkdir -p ../maswe
+          mkdir -p ../masvs
+
       - name: Checkout MASTG
         uses: actions/checkout@v4
         with:
           repository: "OWASP/mastg"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/mastg'] || 'master' }}
           fetch-depth: 1
-          path: mastg/
-          
-      - name: Debug MASTG directory
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "MASTG directory exists: $(test -d mastg && echo 'Yes' || echo 'No')"
-          echo "MASTG directory contents:"
-          ls -la mastg/
-          echo "MASTG knowledge directory exists: $(test -d mastg/knowledge && echo 'Yes' || echo 'No')"
+          path: ../mastg
 
       - name: Checkout MASWE
         uses: actions/checkout@v4
@@ -64,7 +62,7 @@ jobs:
           repository: "OWASP/maswe"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/maswe'] || 'main' }}
           fetch-depth: 1
-          path: maswe/
+          path: ../maswe
 
       - name: Get Latest MASVS Release Tag
         run: echo "MASVS_VERSION=$(curl -s https://api.github.com/repos/OWASP/masvs/releases/latest | jq '.tag_name' | sed 's/\"//g')" >> $GITHUB_ENV
@@ -75,10 +73,10 @@ jobs:
           repository: "OWASP/masvs"
           ref: ${{ fromJson(inputs.sources_override_json)['OWASP/masvs'] || 'master' }}
           fetch-depth: 1
-          path: masvs/
+          path: ../masvs
 
       - name: Generate MASVS yaml
-        run: python3 ./masvs/tools/generate_masvs_yaml.py -v ${{env.MASVS_VERSION}} -i ./masvs/Document -c ./masvs/controls
+        run: python3 ../masvs/tools/generate_masvs_yaml.py -v ${{env.MASVS_VERSION}} -i ../masvs/Document -c ../masvs/controls
 
       - name: Build website (no deploy)
         if: ${{ !inputs.deploy }}

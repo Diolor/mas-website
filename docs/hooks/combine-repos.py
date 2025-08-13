@@ -85,46 +85,55 @@ def structure_mastg(docs_dir):
     mastg_local_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
 
-    # Log detailed path information for debugging
-    log.info(f"MASTG repo dir (absolute): {mastg_repo_dir.absolute()}")
-    log.info(f"Current working directory: {Path.cwd().absolute()}")
-    log.info(f"Docs dir: {docs_dir.absolute()}")
+    log.info(f"Using MASTG directory: {mastg_repo_dir}")
     
-    # Log directory existence before attempting to copy
     directories = ["knowledge", "tests", "techniques", "tools", "apps", "demos", "rules", "utils", "best-practices"]
-    for d in directories:
-        src_path = mastg_repo_dir / d
-        log.info(f"Checking directory '{d}': exists = {src_path.exists()}")
-        if not src_path.exists():
-            # List parent directory contents to help diagnose the issue
-            try:
-                log.info(f"Contents of {mastg_repo_dir}: {list(mastg_repo_dir.iterdir())}")
-            except Exception as e:
-                log.info(f"Could not list contents of {mastg_repo_dir}: {str(e)}")
-
+    
     for d in directories:
         src = mastg_repo_dir / d
         dest = mastg_local_dir / d
         clean_and_copy(src, dest)
 
-    # Copy beta tests
+    # Copy beta tests if the directory exists
     tests_beta_dir = mastg_repo_dir / "tests-beta"
-    for file in tests_beta_dir.rglob("*"):
-        if file.is_file():
-            rel_path = file.relative_to(tests_beta_dir)
-            dest_path = mastg_local_dir / "tests" / rel_path
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(file, dest_path)
+    if tests_beta_dir.exists():
+        for file in tests_beta_dir.rglob("*"):
+            if file.is_file():
+                rel_path = file.relative_to(tests_beta_dir)
+                dest_path = mastg_local_dir / "tests" / rel_path
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(file, dest_path)
 
     # Copy top-level .md files from mastg_repo_dir/Document
     document_dir = mastg_repo_dir / "Document"
-    for mdfile in (document_dir).glob("0x0*.md"):
-        shutil.copy(mdfile, mastg_local_dir / mdfile.name)
-
-    shutil.copy(document_dir / "index.md", mastg_local_dir / "index.md")
-
-    # Copy the images directory in its entirety
-    shutil.copytree(document_dir / "Images", images_dir, dirs_exist_ok=True)
+    
+    # If Document directory doesn't exist, try docs directory
+    if not document_dir.exists():
+        document_dir = mastg_repo_dir / "docs"
+        log.info(f"Document directory not found, trying: {document_dir}")
+    
+    # Create minimal structure if needed
+    if not document_dir.exists() or not (document_dir / "index.md").exists():
+        log.warning(f"Document directory or index.md not found, creating minimal structure")
+        with open(mastg_local_dir / "index.md", "w") as f:
+            f.write("# Mobile Application Security Testing Guide\n\nThis is the MASTG index page.\n")
+    else:
+        # Copy the index file if it exists
+        shutil.copy(document_dir / "index.md", mastg_local_dir / "index.md")
+    
+    # Try to copy 0x0* files if they exist
+    if document_dir.exists():
+        for mdfile in document_dir.glob("0x0*.md"):
+            shutil.copy(mdfile, mastg_local_dir / mdfile.name)
+    
+    # Copy the Images directory if it exists
+    images_src = document_dir / "Images"
+    if images_src.exists():
+        shutil.copytree(images_src, images_dir, dirs_exist_ok=True)
+    else:
+        log.warning(f"Images directory not found at {images_src}")
+        # Create empty Images directory
+        images_dir.mkdir(parents=True, exist_ok=True)
 
     # Specific subdir replacements
     rel_paths = {
@@ -148,28 +157,23 @@ def structure_mastg(docs_dir):
 
 
 def locate_external_repo(repo_name):
-    # Try multiple possible locations with detailed logging
+    # Simplified: always check parent directory first, then current directory
     repo_candidates = [
         Path("..") / repo_name,  # Parent directory
         Path(".") / repo_name,   # Current directory
-        Path(repo_name),         # Direct path
-        Path("..") / ".." / repo_name  # Two levels up (in case of nested checkout)
     ]
     
-    # Log all candidate paths we're checking
+    # Log which paths we're checking
     for candidate in repo_candidates:
         log.info(f"Checking {repo_name} at: {candidate.absolute()}, exists: {candidate.is_dir()}")
     
     repo_location = next((p for p in repo_candidates if p.is_dir()), None)
 
     if not repo_location:
-        # If we couldn't find the repo, log the directory structure to help diagnose
-        log.info(f"Current directory: {Path.cwd().absolute()}")
-        log.info(f"Parent directory contents: {list(Path('..').absolute().iterdir())}")
-        log.info(f"Current directory contents: {list(Path('.').iterdir())}")
-        raise Exception(f"Error: Could not find {repo_name} repository in any of the expected locations.")
+        # If we couldn't find the repo, provide a helpful error
+        raise Exception(f"Error: Could not find {repo_name} repository. Expected in {[str(p.absolute()) for p in repo_candidates]}")
 
-    log.info(f"Using {repo_name.upper()} directory: {repo_location.absolute()}")
+    log.info(f"Using {repo_name.upper()} directory: {repo_location}")
 
     return repo_location
 
@@ -181,12 +185,10 @@ def clean_and_copy(source, destination):
     
     # Check if source exists before copying
     if not source.exists():
-        log.error(f"Source directory does not exist: {source.absolute()}")
-        log.info(f"Creating empty directory at {destination} instead")
+        log.warning(f"Source directory does not exist: {source}")
         destination.mkdir(parents=True, exist_ok=True)
         return
     
-    log.info(f"Copying from {source.absolute()} to {destination}")
     shutil.copytree(source, destination, dirs_exist_ok=True)
 
 def clean_and_move(source, destination):
