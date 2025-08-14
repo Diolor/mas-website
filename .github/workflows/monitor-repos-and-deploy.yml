@@ -19,7 +19,7 @@ jobs:
         id: sha
         run: |
           echo "mastg_sha=$(git ls-remote https://github.com/OWASP/mastg.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
-          echo "masvs_sha=$(git ls-remote https://github.com/OWASP/masvs.git refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "masvs_sha=$(git ls-remote https://github.com/OWASP/masvs.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
           echo "maswe_sha=$(git ls-remote https://github.com/OWASP/maswe.git refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout gh-pages to read previous state
