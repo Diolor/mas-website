@@ -1,0 +1,95 @@
+name: Monitor Repos and Deploy
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.decide.outputs.changed }}
+      mastg_sha: ${{ steps.sha.outputs.mastg_sha }}
+      masvs_sha: ${{ steps.sha.outputs.masvs_sha }}
+      maswe_sha: ${{ steps.sha.outputs.maswe_sha }}
+      override_json: ${{ steps.bundle.outputs.override_json }}
+    steps:
+      - name: Get latest commits
+        id: sha
+        run: |
+          echo "mastg_sha=$(git ls-remote https://github.com/OWASP/mastg.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "masvs_sha=$(git ls-remote https://github.com/OWASP/masvs.git refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "maswe_sha=$(git ls-remote https://github.com/OWASP/maswe.git refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout gh-pages to read previous state
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: ghp
+          fetch-depth: 1
+
+      - name: Read previous SHAs
+        id: prev
+        run: |
+          read_file() { test -f "ghp/.state/$1" && cat "ghp/.state/$1" || echo ""; }
+          echo "prev_mastg=$(read_file mastg_sha)" >> "$GITHUB_OUTPUT"
+          echo "prev_masvs=$(read_file masvs_sha)" >> "$GITHUB_OUTPUT"
+          echo "prev_maswe=$(read_file maswe_sha)" >> "$GITHUB_OUTPUT"
+
+      - name: Decide if deploy needed
+        id: decide
+        run: |
+          changed=false
+          [ "${{ steps.sha.outputs.mastg_sha }}" != "${{ steps.prev.outputs.prev_mastg }}" ] && changed=true
+          [ "${{ steps.sha.outputs.masvs_sha }}" != "${{ steps.prev.outputs.prev_masvs }}" ] && changed=true
+          [ "${{ steps.sha.outputs.maswe_sha }}" != "${{ steps.prev.outputs.prev_maswe }}" ] && changed=true
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Bundle overrides JSON
+        id: bundle
+        run: |
+          printf -v json \
+            '{"OWASP/mastg":"%s","OWASP/masvs":"%s","OWASP/maswe":"%s"}' \
+            "${{ steps.sha.outputs.mastg_sha }}" \
+            "${{ steps.sha.outputs.masvs_sha }}" \
+            "${{ steps.sha.outputs.maswe_sha }}"
+          echo "override_json=$json" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/build-website-reusable.yml
+    with:
+      deploy: true
+      sources_override_json: ${{ needs.check.outputs.override_json }}
+    secrets: inherit
+
+  record:
+    needs: [check, deploy]
+    if: needs.check.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          path: ghp
+
+      - name: Update state files with deployed SHAs
+        working-directory: ghp
+        run: |
+          mkdir -p .state
+          echo "${{ needs.check.outputs.mastg_sha }}" > .state/mastg_sha
+          echo "${{ needs.check.outputs.masvs_sha }}" > .state/masvs_sha
+          echo "${{ needs.check.outputs.maswe_sha }}" > .state/maswe_sha
+          git add .state/mastg_sha .state/masvs_sha .state/maswe_sha
+          if git diff --cached --quiet; then
+            echo "State already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Record deployed SHAs. mastg=${{ needs.check.outputs.mastg_sha }}, masvs=${{ needs.check.outputs.masvs_sha }}, maswe=${{ needs.check.outputs.maswe_sha }}"
+          git push origin gh-pages
