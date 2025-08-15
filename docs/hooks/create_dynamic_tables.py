@@ -101,6 +101,8 @@ def get_mastg_tests_dict():
                     frontmatter['masvs_v2_id'] = []
                     if frontmatter['weakness'] in MASWE:
                         frontmatter['masvs_v2_id'].append(MASWE[frontmatter['weakness']]['masvs_v2_id'])
+                    else:
+                        log.warning(f"Weakness {frontmatter['weakness']} not found in MASWE")
                     
                 masvs_v2_id = frontmatter['masvs_v2_id']
                 
