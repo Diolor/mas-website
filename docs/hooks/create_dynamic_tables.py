@@ -104,7 +104,11 @@ def get_mastg_tests_dict():
                     
                 masvs_v2_id = frontmatter['masvs_v2_id']
                 
-                current_masvs_id = masvs_v2_id[0]
+                try:
+                    current_masvs_id = masvs_v2_id[0]
+                except Exception as e:
+                    print(f"Error getting masvs_v2_id for test {frontmatter.get('id', 'unknown')}: {e}")
+                    continue
                 if current_masvs_id not in mastg_tests:
                     mastg_tests[current_masvs_id] = {}
                 if platform not in mastg_tests[current_masvs_id]:
