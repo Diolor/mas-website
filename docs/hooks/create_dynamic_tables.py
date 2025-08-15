@@ -66,9 +66,6 @@ def get_all_weaknessess():
 
     return weaknesses
 
-weaknesses = get_all_weaknessess()
-MASWE = {weakness['id']: weakness for weakness in weaknesses}
-
 def get_platform(input_file: str) -> str:
     if "/android/" in input_file:
         return "android"
@@ -76,6 +73,9 @@ def get_platform(input_file: str) -> str:
         return "ios"
 
 def get_mastg_tests_dict():
+
+    weaknesses = get_all_weaknessess()
+    MASWE = {weakness['id']: weakness for weakness in weaknesses}
 
     mastg_tests = {}
 
