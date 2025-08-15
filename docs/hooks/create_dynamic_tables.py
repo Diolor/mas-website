@@ -82,31 +82,36 @@ def get_mastg_tests_dict():
     for file in glob.glob("docs/MASTG/tests/**/*.md", recursive=True):
         if "index.md" not in file:
             with open(file, 'r') as f:
-                id = ""
+                current_masvs_id = ""
                 content = f.read()
                 platform = get_platform(file)
-                try:
-                    frontmatter = next(yaml.load_all(content, Loader=yaml.FullLoader))
+                MASTG_TEST_ID = re.compile(r".*(MASTG-TEST-\d*).md$").match(file).group(1)
+                frontmatter = next(yaml.load_all(content, Loader=yaml.FullLoader))
+                frontmatter['path'] = os.path.relpath(file, "docs/MASTG")
+                
+                if MASTG_TEST_ID.startswith("MASTG-TEST-00") or MASTG_TEST_ID.startswith("MASTG-TEST-01"):
+                    # it's a v1 test
+                    frontmatter['id'] = MASTG_TEST_ID
                     if not frontmatter.get('masvs_v2_id'):
-                        frontmatter['masvs_v2_id'] = []
-                        if frontmatter['weakness'] in MASWE:
-                            frontmatter['masvs_v2_id'].append(MASWE[frontmatter['weakness']]['masvs_v2_id'])
-                    masvs_v2_id = frontmatter['masvs_v2_id']
-                    frontmatter['path'] = os.path.relpath(file, "docs/MASTG")
-                    if masvs_v2_id:
-                        id = masvs_v2_id[0]
-                        if id not in mastg_tests:
-                            mastg_tests[id] = {}
-                        if platform not in mastg_tests[id]:
-                            mastg_tests[id][platform] = []
-
-                        MASTG_TEST_ID = re.compile(r".*(MASTG-TEST-\d*).md$").match(file).group(1)
-                        frontmatter['MASTG-TEST-ID'] = MASTG_TEST_ID
-                        mastg_tests[id][platform].append(frontmatter)
-                    else:
                         log.warning(f"No MASVS v2 coverage for: {frontmatter['title']} (was {frontmatter.get('masvs_v1_id'), 'N/A'})")
-                except StopIteration:
-                    continue
+                        continue
+                
+                else:
+                    # it's a v2 test
+                    frontmatter['masvs_v2_id'] = []
+                    if frontmatter['weakness'] in MASWE:
+                        frontmatter['masvs_v2_id'].append(MASWE[frontmatter['weakness']]['masvs_v2_id'])
+                    
+                masvs_v2_id = frontmatter['masvs_v2_id']
+                
+                current_masvs_id = masvs_v2_id[0]
+                if current_masvs_id not in mastg_tests:
+                    mastg_tests[current_masvs_id] = {}
+                if platform not in mastg_tests[current_masvs_id]:
+                    mastg_tests[current_masvs_id][platform] = []
+
+                mastg_tests[current_masvs_id][platform].append(frontmatter)
+
     return mastg_tests
 
 def retrieve_masvs(version="latest"):
@@ -158,14 +163,14 @@ def add_test_rows(checklist, platform, control):
             checklist_row['path'] = f"/MASTG/{os.path.splitext(test['path'])[0]}"
             checklist_row['Platform'] = test['platform']
             checklist_row['Control / MASTG Test'] = test['title']
-            checklist_row['MASTG-TEST-ID'] = test["MASTG-TEST-ID"]
+            checklist_row['MASTG-TEST-ID'] = test["id"]
             checklist_row['L1'] = "L1" in levels
             checklist_row['L2'] = "L2" in levels
             checklist_row['R'] = "R" in levels
             checklist_row['P'] = "P" in levels
-            if "MASTG-TEST-00" in test['MASTG-TEST-ID']:
+            if "MASTG-TEST-00" in test['id']:
                 checklist_row['Status'] = test.get('status', 'update-pending')
-            elif "MASTG-TEST-02" in test['MASTG-TEST-ID']:
+            elif "MASTG-TEST-02" in test['id']:
                 checklist_row['Status'] = test.get('status', 'new')
             checklist.append(checklist_row)
 
