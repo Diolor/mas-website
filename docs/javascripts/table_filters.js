@@ -392,7 +392,8 @@
               platforms.forEach(p => { if (html.includes(`platform:${p}`)) present.add(p); });
             });
             platforms.filter(p => present.has(p)).forEach(p => {
-              const label = p.charAt(0).toUpperCase() + p.slice(1);
+              // Special-case formatting: display 'ios' as 'iOS' (not 'Ios')
+              const label = p === 'ios' ? 'iOS' : (p.charAt(0).toUpperCase() + p.slice(1));
               const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-platform-${p}`, label, {
                 type: 'platform', value: p, token: p
               });
