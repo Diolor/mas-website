@@ -39,25 +39,43 @@
       const label = (th.textContent || '').trim().toLowerCase();
       map[idx] = label;
     });
-    function find(labelVariants) {
-      const arr = Array.isArray(labelVariants) ? labelVariants : [labelVariants];
-      for (const [idx, label] of Object.entries(map)) {
-        if (arr.some(l => label === l || label.includes(l))) return parseInt(idx, 10);
+
+    function findExact(label) {
+      for (const [idx, l] of Object.entries(map)) {
+        if (l === label) return parseInt(idx, 10);
       }
       return null;
     }
+
+    function findAnyEquals(labels) {
+      const arr = Array.isArray(labels) ? labels : [labels];
+      for (const lab of arr) {
+        const idx = findExact(lab);
+        if (idx != null) return idx;
+      }
+      return null;
+    }
+
+    function findIncludes(labels) {
+      const arr = Array.isArray(labels) ? labels : [labels];
+      for (const [idx, l] of Object.entries(map)) {
+        if (arr.some(lbl => l.includes(lbl))) return parseInt(idx, 10);
+      }
+      return null;
+    }
+
     return {
-      id: find(['id']),
-      title: find(['title', 'name']),
-      control: find(['control / mastg test', 'control']),
-      platform: find(['platform']),
-      status: find(['status']),
-      L1: find(['l1']),
-      L2: find(['l2']),
-      R: find(['r']),
-      P: find(['p']),
-      masvs: find(['masvs v2 id', 'masvs-id']),
-      mastgTestId: find(['mastg-test-id']),
+      id: findExact('id'),
+      title: findAnyEquals(['title', 'name']),
+      control: findIncludes(['control / mastg test']) ?? findExact('control'),
+      platform: findExact('platform'),
+      status: findExact('status'),
+      L1: findExact('l1'),
+      L2: findExact('l2'),
+      R: findExact('r'),
+      P: findExact('p'),
+      masvs: findAnyEquals(['masvs v2 id', 'masvs-id']) ?? findIncludes(['masvs']),
+      mastgTestId: findAnyEquals(['mastg-test-id']) ?? findIncludes(['mastg test id']),
     };
   }
 
@@ -408,10 +426,20 @@
         // Profiles filter
         if (state.profiles.length > 0) {
           const colIndexByProfile = { L1: cols.L1, L2: cols.L2, R: cols.R, P: cols.P };
+          // If none of the profile columns are present, don't filter by profile
+          const anyProfileCol = Object.values(colIndexByProfile).some(v => v != null);
+          if (!anyProfileCol) return true;
+          const colorByProfile = { L1: 'blue', L2: 'green', R: 'orange', P: 'purple' };
           const matched = state.profiles.some(level => {
             const idx = colIndexByProfile[level];
-            if (idx == null) return false;
-            return cellIncludes(rowData[idx], `profile:${level}`);
+            const token = `profile:${level.toLowerCase()}`;
+            if (idx != null) {
+              const cell = (rowData[idx] || '').toString().toLowerCase();
+              if (cell.includes(token) || cell.includes(`mas-dot-${colorByProfile[level]}`)) return true;
+            }
+            // Fallback: search entire row string when a specific column index was not available or empty
+            const wholeRow = rowData.map(c => (c || '').toString().toLowerCase()).join(' ');
+            return wholeRow.includes(token);
           });
           if (!matched) return false;
         }
