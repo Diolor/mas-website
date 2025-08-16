@@ -152,19 +152,29 @@
       $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(fn => !fn._masCustomFilter);
     }
 
-    // Select all tables on the page; we will detect applicability later
-    const pageRoot = document.querySelector('main, article, body') || document.body;
-    const allTables = Array.from(pageRoot.querySelectorAll('table'))
-      .filter(t => !t.classList.contains('mas-filters-initialized'));
-    if (!allTables.length) return;
-
     const { tokens: initialTokens, query: initialQuery } = parseHash();
     const path = window.location.pathname || '';
-    const enabledGroups = Object.keys(PAGE_CONFIG).reduce((acc, key) => acc || (path.includes(key) ? PAGE_CONFIG[key] : acc), null);
+    // Activate only on specific index pages defined in PAGE_CONFIG
+    let pageGroups = null;
+    for (const [key, groups] of Object.entries(PAGE_CONFIG)) {
+      if (path.indexOf(key) !== -1) { pageGroups = groups; break; }
+    }
+    if (!pageGroups) return;
 
-    allTables.forEach((table, tIndex) => {
-      const $table = $(table);
-      const isTestsTable = $table.closest('#table_tests').length > 0;
+  function attemptSetup(attempt) {
+      const pageRoot = document.querySelector('main, article, body') || document.body;
+      const allTables = Array.from(pageRoot.querySelectorAll('table'))
+        .filter(t => !t.classList.contains('mas-filters-initialized'));
+      if (!allTables.length) {
+        if (attempt < 20) {
+          setTimeout(() => attemptSetup(attempt + 1), 75);
+        }
+        return;
+      }
+
+      allTables.forEach((table, tIndex) => {
+  const $table = $(table);
+  const isTestsTable = $table.closest('#table_tests, div#table_tests, [id^="table_tests"]').length > 0;
 
       // Encapsulate setup that requires a ready DataTable instance
       function setup(dtApi) {
@@ -178,8 +188,8 @@
           profile: !!(cols.L1 || cols.L2 || cols.R || cols.P),
           search: true
         };
-        if (enabledGroups) {
-          Object.keys(show).forEach(k => show[k] = enabledGroups.includes(k) && show[k]);
+        if (pageGroups) {
+          Object.keys(show).forEach(k => show[k] = pageGroups.includes(k) && show[k]);
         }
 
         // If nothing applicable, skip this table
@@ -475,22 +485,26 @@
       if ($.fn.dataTable.isDataTable(table)) {
         setup($table.DataTable());
       } else if (isTestsTable) {
-        const dt = $table.DataTable({
+        // For the tests index, this table is excluded from the generic datatables init,
+        // so we initialize it here and ensure setup runs after init. Bind the handler BEFORE init.
+        $table.one('init.dt', function () { setup($table.DataTable()); });
+        $table.DataTable({
           paging: false,
           order: [],
           dom: '<"top"if>rt<"bottom"lp><"clear">',
           info: false,
           search: true
         });
-        // Run setup immediately after init
-        $table.one('init.dt', function () { setup(dt); });
       } else {
         // Let datatables.js initialize it; then run setup
         $table.one('init.dt', function () {
           setup($table.DataTable());
         });
       }
-    });
+      });
+    }
+
+    attemptSetup(0);
   }
 
   // Re-run on mkdocs page changes
