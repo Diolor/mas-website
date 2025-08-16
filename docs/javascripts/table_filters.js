@@ -292,7 +292,7 @@
     }
     if (!pageGroups) return;
 
-  function attemptSetup(attempt) {
+    function attemptSetup(attempt) {
       const pageRoot = document.querySelector('main, article, body') || document.body;
       const allTables = Array.from(pageRoot.querySelectorAll('table'))
         .filter(t => !t.classList.contains('mas-filters-initialized'));
@@ -304,344 +304,351 @@
       }
 
       allTables.forEach((table, tIndex) => {
-  const $table = $(table);
-  const isTestsTable = $table.closest('#table_tests, div#table_tests, [id^="table_tests"]').length > 0;
+        const $table = $(table);
+        const isTestsTable = $table.closest('#table_tests, div#table_tests, [id^="table_tests"]').length > 0;
 
-      // Encapsulate setup that requires a ready DataTable instance
-      function setup(dtApi) {
-        // Detect columns early
-        const cols = detectColumns(table);
+        // Encapsulate setup that requires a ready DataTable instance
+        function setup(dtApi) {
+          // Detect columns early
+          const cols = detectColumns(table);
 
-        // Determine which groups to show (auto if not configured)
-        const show = {
-          status: !!cols.status,
-          platform: !!cols.platform,
-          profile: !!(cols.L1 || cols.L2 || cols.R || cols.P),
-          search: true
-        };
-        if (pageGroups) {
-          Object.keys(show).forEach(k => show[k] = pageGroups.includes(k) && show[k]);
-        }
+          // Determine which groups to show (auto if not configured)
+          const show = {
+            status: !!cols.status,
+            platform: !!cols.platform,
+            profile: !!(cols.L1 || cols.L2 || cols.R || cols.P),
+            search: true
+          };
+          if (pageGroups) {
+            Object.keys(show).forEach(k => show[k] = pageGroups.includes(k) && show[k]);
+          }
 
-        // If nothing applicable, skip this table
-        if (!show.status && !show.platform && !show.profile && !show.search) return;
+          // If nothing applicable, skip this table
+          if (!show.status && !show.platform && !show.profile && !show.search) return;
 
-        // Remove default search box next to this table only
-        const wrapper = $table.closest('.dataTables_wrapper');
-        if (wrapper.length) {
-          const df = wrapper.find('.dataTables_filter');
-          if (df.length) df.parent().remove();
-        } else {
-          // As a fallback, try removing any sibling default filters (unexpected structure)
-          const globalDf = $table.parent().find('.dataTables_filter');
-          if (globalDf.length) globalDf.parent().remove();
-        }
+          // Remove default search box next to this table only
+          const wrapper = $table.closest('.dataTables_wrapper');
+          if (wrapper.length) {
+            const df = wrapper.find('.dataTables_filter');
+            if (df.length) df.parent().remove();
+          } else {
+            // As a fallback, try removing any sibling default filters (unexpected structure)
+            const globalDf = $table.parent().find('.dataTables_filter');
+            if (globalDf.length) globalDf.parent().remove();
+          }
 
-        // Build container UI
-      const container = document.createElement('div');
-      container.className = 'mastg-filters-wrapper';
-      container.style.padding = '1rem';
-      container.style.marginBottom = '1.5rem';
-      container.style.backgroundColor = 'var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.05))';
-      container.style.borderRadius = '4px';
-      container.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
+          // Build container UI
+          const container = document.createElement('div');
+          container.className = 'mastg-filters-wrapper';
+          container.style.padding = '1rem';
+          container.style.marginBottom = '1.5rem';
+          container.style.backgroundColor = 'var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.05))';
+          container.style.borderRadius = '4px';
+          container.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
 
-      const row = document.createElement('div');
-      row.className = 'mastg-filters';
-      row.style.display = 'flex';
-      row.style.flexWrap = 'wrap';
-      row.style.gap = '1rem';
-      row.style.alignItems = 'center';
-      row.style.width = '100%';
+          const row = document.createElement('div');
+          row.className = 'mastg-filters';
+          row.style.display = 'flex';
+          row.style.flexWrap = 'wrap';
+          row.style.gap = '1rem';
+          row.style.alignItems = 'center';
+          row.style.width = '100%';
+          // Add some vertical breathing room from the row below (info/clear)
+          row.style.marginBottom = '0.75rem';
 
-      container.appendChild(row);
+          container.appendChild(row);
 
-      // Active state per table
-      const state = {
-        showDeprecated: false,
-        platforms: [], // values: android, ios, network, generic
-        profiles: [], // values: L1,L2,R,P
-        search: ''
-      };
+          // Active state per table
+          const state = {
+            showDeprecated: false,
+            platforms: [], // values: android, ios, network, generic
+            profiles: [], // values: L1,L2,R,P
+            search: ''
+          };
 
-      // Status group (Show Deprecated)
-      if (show.status) {
-        const { groupContainer } = createGroup('Status:');
-        const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-status-deprecated`, 'Show Deprecated', {
-          type: 'status', token: 'deprecated'
-        });
-        checkbox.addEventListener('change', () => {
-          state.showDeprecated = checkbox.checked;
-          applyFilters();
-        });
-        groupContainer.appendChild(toggleLabel);
-        row.appendChild(groupContainer);
-      }
+          // Status group (Show Deprecated)
+          if (show.status) {
+            const { groupContainer } = createGroup('Status:');
+            const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-status-deprecated`, 'Show Deprecated', {
+              type: 'status', token: 'deprecated'
+            });
+            checkbox.addEventListener('change', () => {
+              state.showDeprecated = checkbox.checked;
+              applyFilters();
+            });
+            groupContainer.appendChild(toggleLabel);
+            row.appendChild(groupContainer);
+          }
 
-      // Platform group (auto-detect platforms present)
-      if (show.platform) {
-        const { groupContainer } = createGroup('Platform:');
-        const platforms = ['android', 'ios', 'network', 'generic'];
-        const present = new Set();
-        // Scan all rows for hidden platform:xxx tokens
-        dtApi.rows().every(function () {
-          const data = this.data();
-          const html = (data[cols.platform] || '').toString().toLowerCase();
-          platforms.forEach(p => { if (html.includes(`platform:${p}`)) present.add(p); });
-        });
-        platforms.filter(p => present.has(p)).forEach(p => {
-          const label = p.charAt(0).toUpperCase() + p.slice(1);
-          const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-platform-${p}`, label, {
-            type: 'platform', value: p, token: p
+          // Platform group (auto-detect platforms present)
+          if (show.platform) {
+            const { groupContainer } = createGroup('Platform:');
+            const platforms = ['android', 'ios', 'network', 'generic'];
+            const present = new Set();
+            // Scan all rows for hidden platform:xxx tokens
+            dtApi.rows().every(function () {
+              const data = this.data();
+              const html = (data[cols.platform] || '').toString().toLowerCase();
+              platforms.forEach(p => { if (html.includes(`platform:${p}`)) present.add(p); });
+            });
+            platforms.filter(p => present.has(p)).forEach(p => {
+              const label = p.charAt(0).toUpperCase() + p.slice(1);
+              const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-platform-${p}`, label, {
+                type: 'platform', value: p, token: p
+              });
+              checkbox.addEventListener('change', () => {
+                const v = checkbox.dataset.value;
+                if (checkbox.checked) {
+                  if (!state.platforms.includes(v)) state.platforms.push(v);
+                } else {
+                  state.platforms = state.platforms.filter(x => x !== v);
+                }
+                applyFilters();
+              });
+              groupContainer.appendChild(toggleLabel);
+            });
+            row.appendChild(groupContainer);
+          }
+
+          // Profile group
+          if (show.profile) {
+            const { groupContainer } = createGroup('Profile:');
+            const profiles = [
+              cols.L1 != null ? 'L1' : null,
+              cols.L2 != null ? 'L2' : null,
+              cols.R != null ? 'R' : null,
+              cols.P != null ? 'P' : null,
+            ].filter(Boolean);
+            profiles.forEach(p => {
+              const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-profile-${p.toLowerCase()}`, p, {
+                type: 'profile', value: p, token: p.toLowerCase()
+              });
+              checkbox.addEventListener('change', () => {
+                const v = checkbox.dataset.value;
+                if (checkbox.checked) {
+                  if (!state.profiles.includes(v)) state.profiles.push(v);
+                } else {
+                  state.profiles = state.profiles.filter(x => x !== v);
+                }
+                applyFilters();
+              });
+              groupContainer.appendChild(toggleLabel);
+            });
+            row.appendChild(groupContainer);
+          }
+
+          // Search group
+          let searchInput = null;
+          if (show.search) {
+            const searchContainer = document.createElement('div');
+            searchContainer.className = 'filter-group';
+            searchContainer.style.display = 'flex';
+            searchContainer.style.alignItems = 'center';
+            searchContainer.style.gap = '0.5rem';
+            // Keep the search controls docked to the right edge of the filters row
+            searchContainer.style.marginLeft = 'auto';
+
+            const searchLabel = document.createElement('span');
+            searchLabel.textContent = 'Search:';
+            searchLabel.style.fontWeight = 'bold';
+            searchLabel.style.minWidth = '70px';
+            searchLabel.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
+
+            searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.id = `mas-filter-${tIndex}-search`;
+            searchInput.style.fontWeight = 'bold';
+            searchInput.style.minWidth = '300px';
+            searchInput.style.padding = '10px';
+            searchInput.style.border = '1px solid #ccc';
+            searchInput.style.borderRadius = '5px';
+            searchInput.addEventListener('keyup', () => {
+              state.search = (searchInput.value || '').toLowerCase();
+              applyFilters();
+            });
+
+            searchContainer.appendChild(searchLabel);
+            searchContainer.appendChild(searchInput);
+            row.appendChild(searchContainer);
+          }
+
+          // Bottom row
+          const bottomRow = document.createElement('div');
+          bottomRow.style.display = 'flex';
+          bottomRow.style.justifyContent = 'space-between';
+          bottomRow.style.alignItems = 'center';
+          bottomRow.style.width = '100%';
+          // Extra separation from the filter controls above
+          bottomRow.style.marginTop = '0.75rem';
+
+          const infoSpan = document.createElement('span');
+          infoSpan.id = `mas-filter-${tIndex}-info`;
+          // Do not emphasize 'Showing' text
+          infoSpan.style.fontWeight = 'normal';
+          infoSpan.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
+
+          const clearButton = document.createElement('button');
+          clearButton.textContent = 'Clear All Filters';
+          clearButton.style.padding = '0.3rem 0.75rem';
+          clearButton.style.border = '1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.1))';
+          clearButton.style.borderRadius = '4px';
+          clearButton.style.backgroundColor = 'var(--md-default-fg-color--lightest, #f8f8f8)';
+          clearButton.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
+          clearButton.style.cursor = 'pointer';
+          clearButton.style.transition = 'background-color 0.2s';
+          clearButton.addEventListener('mouseover', function () {
+            clearButton.style.backgroundColor = 'var(--md-accent-fg-color--transparent, #e9e9e9)';
           });
-          checkbox.addEventListener('change', () => {
-            const v = checkbox.dataset.value;
-            if (checkbox.checked) {
-              if (!state.platforms.includes(v)) state.platforms.push(v);
-            } else {
-              state.platforms = state.platforms.filter(x => x !== v);
-            }
+          clearButton.addEventListener('mouseout', function () {
+            clearButton.style.backgroundColor = 'var(--md-default-fg-color--lightest, #f8f8f8)';
+          });
+          clearButton.addEventListener('click', function () {
+            // Uncheck all inputs in this container
+            container.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event('change')); });
+            if (searchInput) searchInput.value = '';
+            state.showDeprecated = false;
+            state.platforms = [];
+            state.profiles = [];
+            state.search = '';
             applyFilters();
           });
-          groupContainer.appendChild(toggleLabel);
-        });
-        row.appendChild(groupContainer);
-      }
 
-      // Profile group
-      if (show.profile) {
-        const { groupContainer } = createGroup('Profile:');
-        const profiles = [
-          cols.L1 != null ? 'L1' : null,
-          cols.L2 != null ? 'L2' : null,
-          cols.R != null ? 'R' : null,
-          cols.P != null ? 'P' : null,
-        ].filter(Boolean);
-        profiles.forEach(p => {
-          const { toggleLabel, checkbox } = createCheckbox(`mas-filter-${tIndex}-profile-${p.toLowerCase()}`, p, {
-            type: 'profile', value: p, token: p.toLowerCase()
-          });
-          checkbox.addEventListener('change', () => {
-            const v = checkbox.dataset.value;
-            if (checkbox.checked) {
-              if (!state.profiles.includes(v)) state.profiles.push(v);
+          bottomRow.appendChild(infoSpan);
+          bottomRow.appendChild(clearButton);
+          container.appendChild(bottomRow);
+
+          // Insert container before this table's wrapper
+          const wrapperNode = wrapper.get(0);
+          if (wrapperNode && wrapperNode.parentNode) {
+            wrapperNode.parentNode.insertBefore(container, wrapperNode);
+          } else if (table && table.parentNode) {
+            // Fallback: insert right before the table element
+            table.parentNode.insertBefore(container, table);
+          }
+
+          // DataTables custom filter for this specific table
+          const customFilter = Object.assign(function (settings, rowData /*, dataIndex*/) {
+            if (settings.nTable !== table) return true; // Only filter this table
+
+            // Status: hide deprecated unless explicitly shown
+            if (cols.status != null && !state.showDeprecated) {
+              const statusHtml = (rowData[cols.status] || '').toString().toLowerCase();
+              if (statusHtml.includes('status:deprecated')) return false;
+            }
+
+            // Platform filter
+            if (cols.platform != null && state.platforms.length > 0) {
+              const platformHtml = (rowData[cols.platform] || '').toString().toLowerCase();
+              const matched = state.platforms.some(p => platformHtml.includes(`platform:${p}`));
+              if (!matched) return false;
+            }
+
+            // Profiles filter
+            if (state.profiles.length > 0) {
+              const colIndexByProfile = { L1: cols.L1, L2: cols.L2, R: cols.R, P: cols.P };
+              // If none of the profile columns are present, don't filter by profile
+              const anyProfileCol = Object.values(colIndexByProfile).some(v => v != null);
+              if (!anyProfileCol) return true;
+              const colorByProfile = { L1: 'blue', L2: 'green', R: 'orange', P: 'purple' };
+              const matched = state.profiles.some(level => {
+                const idx = colIndexByProfile[level];
+                const token = `profile:${level.toLowerCase()}`;
+                if (idx != null) {
+                  const cell = (rowData[idx] || '').toString().toLowerCase();
+                  if (cell.includes(token) || cell.includes(`mas-dot-${colorByProfile[level]}`)) return true;
+                }
+                // Fallback: search entire row string when a specific column index was not available or empty
+                const wholeRow = rowData.map(c => (c || '').toString().toLowerCase()).join(' ');
+                return wholeRow.includes(token);
+              });
+              if (!matched) return false;
+            }
+
+            // Search across common columns
+            if (state.search && state.search.length > 0) {
+              const candidates = [cols.id, cols.title, cols.control, cols.masvs, cols.mastgTestId]
+                .filter(idx => idx != null)
+                .map(idx => (rowData[idx] || '').toString().toLowerCase());
+              const ok = candidates.some(text => text.includes(state.search));
+              if (!ok) return false;
+            }
+
+            return true;
+          }, { _masCustomFilter: true, _masTableIndex: tIndex });
+          $.fn.dataTable.ext.search.push(customFilter);
+
+          function updateInfo() {
+            const infoNode = document.getElementById(`mas-filter-${tIndex}-info`);
+            if (!infoNode) return;
+            const filteredCount = dtApi.rows({ filter: 'applied' }).count();
+            const totalCount = dtApi.rows().count();
+            if (filteredCount < totalCount) {
+              infoNode.textContent = `Showing ${filteredCount} of ${totalCount} entries (filtered)`;
             } else {
-              state.profiles = state.profiles.filter(x => x !== v);
+              infoNode.textContent = `Showing 1 to ${totalCount} of ${totalCount} entries`;
             }
-            applyFilters();
+          }
+
+          function applyFilters() {
+            // Update hash
+            const tokens = [];
+            if (state.showDeprecated) tokens.push('deprecated');
+            state.platforms.forEach(p => tokens.push(p));
+            state.profiles.forEach(p => tokens.push(p.toLowerCase()));
+            updateHash(tokens, state.search);
+            dtApi.draw();
+            updateInfo();
+          }
+
+          // Apply initial hash tokens
+          if (initialTokens.length) {
+            if (show.status && initialTokens.includes('deprecated')) state.showDeprecated = true;
+            if (show.platform) state.platforms = initialTokens.filter(t => ['android', 'ios', 'network', 'generic'].includes(t));
+            if (show.profile) state.profiles = initialTokens.filter(t => ['l1', 'l2', 'r', 'p'].includes(t)).map(s => s.toUpperCase());
+          }
+          if (show.search && initialQuery) {
+            state.search = initialQuery.toLowerCase();
+            if (searchInput) searchInput.value = initialQuery;
+          }
+
+          // Reflect initial states in checkboxes
+          container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            const token = (cb.dataset.token || '').toLowerCase();
+            if (!token) return;
+            const shouldCheck = initialTokens.includes(token);
+            if (shouldCheck) {
+              cb.checked = true;
+              cb.dispatchEvent(new Event('change'));
+            }
           });
-          groupContainer.appendChild(toggleLabel);
-        });
-        row.appendChild(groupContainer);
-      }
 
-      // Search group
-      let searchInput = null;
-      if (show.search) {
-        const searchContainer = document.createElement('div');
-        searchContainer.className = 'filter-group';
-        searchContainer.style.display = 'flex';
-        searchContainer.style.alignItems = 'center';
-        searchContainer.style.gap = '0.5rem';
-
-        const searchLabel = document.createElement('span');
-        searchLabel.textContent = 'Search:';
-        searchLabel.style.fontWeight = 'bold';
-        searchLabel.style.minWidth = '70px';
-        searchLabel.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
-
-        searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.id = `mas-filter-${tIndex}-search`;
-        searchInput.style.fontWeight = 'bold';
-        searchInput.style.minWidth = '300px';
-        searchInput.style.padding = '10px';
-        searchInput.style.border = '1px solid #ccc';
-        searchInput.style.borderRadius = '5px';
-        searchInput.addEventListener('keyup', () => {
-          state.search = (searchInput.value || '').toLowerCase();
+          // Initial draw/info
           applyFilters();
-        });
 
-        searchContainer.appendChild(searchLabel);
-        searchContainer.appendChild(searchInput);
-        row.appendChild(searchContainer);
-      }
-
-      // Bottom row
-      const bottomRow = document.createElement('div');
-      bottomRow.style.display = 'flex';
-      bottomRow.style.justifyContent = 'space-between';
-      bottomRow.style.alignItems = 'center';
-      bottomRow.style.width = '100%';
-
-      const infoSpan = document.createElement('span');
-      infoSpan.id = `mas-filter-${tIndex}-info`;
-      infoSpan.style.fontWeight = 'bold';
-      infoSpan.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
-
-      const clearButton = document.createElement('button');
-      clearButton.textContent = 'Clear All Filters';
-      clearButton.style.padding = '0.3rem 0.75rem';
-      clearButton.style.border = '1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.1))';
-      clearButton.style.borderRadius = '4px';
-      clearButton.style.backgroundColor = 'var(--md-default-fg-color--lightest, #f8f8f8)';
-      clearButton.style.color = 'var(--md-default-fg-color, rgba(0, 0, 0, 0.87))';
-      clearButton.style.cursor = 'pointer';
-      clearButton.style.transition = 'background-color 0.2s';
-      clearButton.addEventListener('mouseover', function () {
-        clearButton.style.backgroundColor = 'var(--md-accent-fg-color--transparent, #e9e9e9)';
-      });
-      clearButton.addEventListener('mouseout', function () {
-        clearButton.style.backgroundColor = 'var(--md-default-fg-color--lightest, #f8f8f8)';
-      });
-      clearButton.addEventListener('click', function () {
-        // Uncheck all inputs in this container
-        container.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event('change')); });
-        if (searchInput) searchInput.value = '';
-        state.showDeprecated = false;
-        state.platforms = [];
-        state.profiles = [];
-        state.search = '';
-        applyFilters();
-      });
-
-      bottomRow.appendChild(infoSpan);
-      bottomRow.appendChild(clearButton);
-      container.appendChild(bottomRow);
-
-      // Insert container before this table's wrapper
-        const wrapperNode = wrapper.get(0);
-        if (wrapperNode && wrapperNode.parentNode) {
-          wrapperNode.parentNode.insertBefore(container, wrapperNode);
-        } else if (table && table.parentNode) {
-          // Fallback: insert right before the table element
-          table.parentNode.insertBefore(container, table);
+          // Mark initialized
+          table.classList.add('mas-filters-initialized');
         }
 
-      // DataTables custom filter for this specific table
-      const customFilter = Object.assign(function (settings, rowData /*, dataIndex*/) {
-        if (settings.nTable !== table) return true; // Only filter this table
-
-        // Status: hide deprecated unless explicitly shown
-        if (cols.status != null && !state.showDeprecated) {
-          const statusHtml = (rowData[cols.status] || '').toString().toLowerCase();
-          if (statusHtml.includes('status:deprecated')) return false;
-        }
-
-        // Platform filter
-        if (cols.platform != null && state.platforms.length > 0) {
-          const platformHtml = (rowData[cols.platform] || '').toString().toLowerCase();
-          const matched = state.platforms.some(p => platformHtml.includes(`platform:${p}`));
-          if (!matched) return false;
-        }
-
-        // Profiles filter
-        if (state.profiles.length > 0) {
-          const colIndexByProfile = { L1: cols.L1, L2: cols.L2, R: cols.R, P: cols.P };
-          // If none of the profile columns are present, don't filter by profile
-          const anyProfileCol = Object.values(colIndexByProfile).some(v => v != null);
-          if (!anyProfileCol) return true;
-          const colorByProfile = { L1: 'blue', L2: 'green', R: 'orange', P: 'purple' };
-          const matched = state.profiles.some(level => {
-            const idx = colIndexByProfile[level];
-            const token = `profile:${level.toLowerCase()}`;
-            if (idx != null) {
-              const cell = (rowData[idx] || '').toString().toLowerCase();
-              if (cell.includes(token) || cell.includes(`mas-dot-${colorByProfile[level]}`)) return true;
-            }
-            // Fallback: search entire row string when a specific column index was not available or empty
-            const wholeRow = rowData.map(c => (c || '').toString().toLowerCase()).join(' ');
-            return wholeRow.includes(token);
-          });
-          if (!matched) return false;
-        }
-
-        // Search across common columns
-        if (state.search && state.search.length > 0) {
-          const candidates = [cols.id, cols.title, cols.control, cols.masvs, cols.mastgTestId]
-            .filter(idx => idx != null)
-            .map(idx => (rowData[idx] || '').toString().toLowerCase());
-          const ok = candidates.some(text => text.includes(state.search));
-          if (!ok) return false;
-        }
-
-        return true;
-      }, { _masCustomFilter: true, _masTableIndex: tIndex });
-  $.fn.dataTable.ext.search.push(customFilter);
-
-      function updateInfo() {
-        const infoNode = document.getElementById(`mas-filter-${tIndex}-info`);
-        if (!infoNode) return;
-        const filteredCount = dtApi.rows({ filter: 'applied' }).count();
-        const totalCount = dtApi.rows().count();
-        if (filteredCount < totalCount) {
-          infoNode.textContent = `Showing ${filteredCount} of ${totalCount} entries (filtered)`;
-        } else {
-          infoNode.textContent = `Showing 1 to ${totalCount} of ${totalCount} entries`;
-        }
-      }
-
-      function applyFilters() {
-        // Update hash
-        const tokens = [];
-        if (state.showDeprecated) tokens.push('deprecated');
-        state.platforms.forEach(p => tokens.push(p));
-        state.profiles.forEach(p => tokens.push(p.toLowerCase()));
-        updateHash(tokens, state.search);
-        dtApi.draw();
-        updateInfo();
-      }
-
-      // Apply initial hash tokens
-      if (initialTokens.length) {
-        if (show.status && initialTokens.includes('deprecated')) state.showDeprecated = true;
-        if (show.platform) state.platforms = initialTokens.filter(t => ['android', 'ios', 'network', 'generic'].includes(t));
-        if (show.profile) state.profiles = initialTokens.filter(t => ['l1', 'l2', 'r', 'p'].includes(t)).map(s => s.toUpperCase());
-      }
-      if (show.search && initialQuery) {
-        state.search = initialQuery.toLowerCase();
-        if (searchInput) searchInput.value = initialQuery;
-      }
-
-      // Reflect initial states in checkboxes
-      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        const token = (cb.dataset.token || '').toLowerCase();
-        if (!token) return;
-        const shouldCheck = initialTokens.includes(token);
-        if (shouldCheck) {
-          cb.checked = true;
-          cb.dispatchEvent(new Event('change'));
-        }
-      });
-
-      // Initial draw/info
-        applyFilters();
-
-        // Mark initialized
-        table.classList.add('mas-filters-initialized');
-      }
-
-      // Initialize or wait for DataTables
-      if ($.fn.dataTable.isDataTable(table)) {
-        setup($table.DataTable());
-      } else if (isTestsTable) {
-        // For the tests index, this table is excluded from the generic datatables init,
-        // so we initialize it here and ensure setup runs after init. Bind the handler BEFORE init.
-        $table.one('init.dt', function () { setup($table.DataTable()); });
-        $table.DataTable({
-          paging: false,
-          order: [],
-          dom: '<"top"if>rt<"bottom"lp><"clear">',
-          info: false,
-          search: true
-        });
-      } else {
-        // Let datatables.js initialize it; then run setup
-        $table.one('init.dt', function () {
+        // Initialize or wait for DataTables
+        if ($.fn.dataTable.isDataTable(table)) {
           setup($table.DataTable());
-        });
-      }
+        } else if (isTestsTable) {
+          // For the tests index, this table is excluded from the generic datatables init,
+          // so we initialize it here and ensure setup runs after init. Bind the handler BEFORE init.
+          $table.one('init.dt', function () { setup($table.DataTable()); });
+          $table.DataTable({
+            paging: false,
+            order: [],
+            dom: '<"top"if>rt<"bottom"lp><"clear">',
+            info: false,
+            search: true
+          });
+        } else {
+          // Let datatables.js initialize it; then run setup
+          $table.one('init.dt', function () {
+            setup($table.DataTable());
+          });
+        }
       });
     }
 
