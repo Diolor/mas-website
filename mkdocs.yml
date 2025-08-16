@@ -314,7 +314,7 @@ extra_javascript:
   - https://code.jquery.com/jquery-3.5.1.js
   - https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js
   - javascripts/datatables.js
-  - javascripts/table_filters.js
+  - javascripts/filter_tests.js
   - javascripts/navigation.js
   - javascripts/tags.js
 plugins:
