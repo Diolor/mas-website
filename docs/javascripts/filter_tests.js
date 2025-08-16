@@ -1,3 +1,116 @@
+/**
+ * MAS dynamic table filters (generic)
+ *
+ * Purpose
+ * -------
+ * This script adds a consistent, configurable filter bar above the dynamic
+ * index tables rendered across the site (Tests, MASWE, Knowledge, Techniques,
+ * Tools, Demos, Apps, Best Practices, Checklists). It replaces the built-in
+ * DataTables search box with a richer UI that supports:
+ *   - Status: Show Deprecated
+ *   - Platform: Android, iOS, Network, Generic
+ *   - Profile: L1, L2, R, P
+ *   - Search: free-text search across ID/Title (+ a few optional columns)
+ *
+ * Pages targeted
+ * --------------
+ * Activation is limited to the following index page path prefixes (substring
+ * matches against window.location.pathname):
+ *   - /MASTG/tests/
+ *   - /MASWE/
+ *   - /MASTG/knowledge/
+ *   - /MASTG/techniques/
+ *   - /MASTG/tools/
+ *   - /MASTG/demos/
+ *   - /MASTG/apps/
+ *   - /MASTG/best-practices/
+ *   - /checklists/
+ *
+ * You can override/extend this mapping at runtime by defining
+ * window.MAS_TABLE_FILTERS before this script loads, e.g.:
+ *   window.MAS_TABLE_FILTERS = {
+ *     '/MASTG/apps/': ['platform', 'search'],
+ *     '/MASTG/tools/': ['platform', 'search']
+ *   };
+ *
+ * Required HTML markers (rendered by mkdocs hooks)
+ * -----------------------------------------------
+ * The script relies on invisible tokens inserted into table cells:
+ *   - Platform icons include a hidden <span> with e.g. 'platform:android'
+ *   - Profile dots (L1/L2/R/P) include a hidden <span> with e.g. 'profile:L1'
+ *     and visible colored dot classes:
+ *       L1 -> mas-dot-blue, L2 -> mas-dot-green, R -> mas-dot-orange,
+ *       P -> mas-dot-purple
+ *   - Status cells include hidden markers like 'status:deprecated'
+ * These are produced by helpers in docs/hooks/create_dynamic_tables.py.
+ *
+ * Column auto-detection
+ * ---------------------
+ * The script detects relevant columns by reading table headers (thead th):
+ *   - ID (id), Title/Name (title/name), Platform (platform), Status (status)
+ *   - Profile columns: exact headers 'L1', 'L2', 'R', 'P'
+ *   - Optional: masvs id, mastg-test-id (to widen search coverage)
+ * Only filter groups whose columns are present on a page are shown.
+ *
+ * Bookmarkable filters (URL hash)
+ * -------------------------------
+ * Selected filters are encoded in the hash and restored on load:
+ *   - Platforms: android;ios;network;generic
+ *   - Profiles: l1;l2;r;p
+ *   - Status: deprecated
+ *   - Search: q:your+query (URL encoded)
+ * Examples:
+ *   /MASTG/tests/#android;l2
+ *   /MASWE/#ios;l1;q:crypto
+ *   /MASTG/tools/#network
+ *
+ * DataTables integration
+ * ----------------------
+ * - For most pages, DataTables is initialized by docs/javascripts/datatables.js.
+ *   This script waits for the 'init.dt' event before attaching filters.
+ * - The Tests index table is excluded from that generic initializer; this
+ *   script initializes it and then attaches filters.
+ * - The default DataTables search box is removed per-table once our UI is
+ *   injected.
+ * - Each table gets a scoped custom filter function checked via
+ *   settings.nTable === table to avoid cross-table interference.
+ * - To avoid stacking filters across SPA navigations (navigation.instant),
+ *   we remove previously registered custom filters marked with _masCustomFilter
+ *   on each activation.
+ *
+ * SPA/instantiation timing
+ * ------------------------
+ * MkDocs Material navigation can render content asynchronously. We use a short
+ * retry loop (up to ~1.5s total) to wait for the tables to appear before
+ * binding. This keeps the UI stable on fast route changes.
+ *
+ * Matching rules
+ * --------------
+ * - Status: deprecated rows are hidden unless 'Show Deprecated' is checked.
+ * - Platform: match on hidden 'platform:xxx' tokens in the Platform cell.
+ * - Profile: match on hidden 'profile:XX' tokens or the color dot class mapped
+ *   to the profile. If there are no profile columns, the profile filter is a
+ *   no-op for that page.
+ * - Search: case-insensitive substring across detected ID/Title/Control/
+ *   MASVS/MASTG-Test-ID columns.
+ *
+ * Extensibility
+ * -------------
+ * - Add a new page: include its path prefix in DEFAULT_PAGE_CONFIG.
+ * - Add a new group: extend UI creation and update the filtering predicate.
+ * - Add a new platform: ensure the generator inserts 'platform:newvalue' into
+ *   the Platform cell; add a checkbox in the Platform group.
+ *
+ * Maintenance notes
+ * -----------------
+ * - Be careful with header detection for single-letter columns (R, P) — we use
+ *   exact matches to avoid clashes with 'platform'.
+ * - If a future generator change moves hidden tokens, the profile fallback
+ *   also searches all row cells to remain robust.
+ * - The Tests page can change its wrapper id; detection checks #table_tests and
+ *   related variants.
+ */
+
 // Generic, auto-detecting filters for all dynamic tables (tests, weaknesses, techniques, tools, demos, apps, best practices, knowledge, checklists)
 // Works with MkDocs Material navigation (document$) and jQuery DataTables.
 
