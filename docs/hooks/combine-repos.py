@@ -142,6 +142,8 @@ def structure_mastg(docs_dir):
         "techniques": "../../../../../assets/Images/",
         "tools": "../../../../../assets/Images/",
         "apps": "../../../../../assets/Images/",
+        "best-practices": "../../../../../assets/Images/",
+        "demos": "../../../../../assets/Images/",
     }
 
     for subdir, rel_img in rel_paths.items():
