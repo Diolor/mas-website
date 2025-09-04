@@ -4,29 +4,39 @@ This guide will help you set up and run the OWASP MAS website locally on your ma
 
 ## Using Docker
 
-The easiest way to run the website is by using Docker:
+The easiest way to run the website is by using Docker. The following commands will clone the necessary repositories, build the Docker image, and run the website, which will be accessible at [http://localhost:8000](http://localhost:8000).
 
 ```bash
 git clone https://github.com/OWASP/mastg.git
-cd mastg
-docker build . -t mastg
-docker run --name mastg -it --rm -p 8000:8000 -u $(id -u):$(id -g) -v $(pwd):/workspaces/mastg mastg
+git clone https://github.com/OWASP/masvs.git
+git clone https://github.com/OWASP/maswe.git
+git clone https://github.com/OWASP/mas-website.git
+cd mas-website
+docker build . -t mas-website
+docker run --rm -it \
+  -p 8000:8000 \
+  -u $(id -u):$(id -g) \
+  -e GITHUB_TOKEN \
+  -v "$PWD":/workspaces/mas-website \
+  -v "$REPO_ROOT/mastg":/workspaces/mastg \
+  -v "$REPO_ROOT/masvs":/workspaces/masvs \
+  -v "$REPO_ROOT/maswe":/workspaces/maswe \
+  mas-website
 ```
 
-This will make the website available on `http://localhost:8000`. By default, interactions with the Github api are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable. Make sure docker can access the token by using `-e GITHUB_TOKEN`:
+By default, interactions with the Github API are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable. Make sure to export this token in your shell before running the Docker container:
 
 ```bash
 export GITHUB_TOKEN=<TOKEN>
-docker run --name mastg -it --rm -p 8000:8000 -u $(id -u):$(id -g) -e GITHUB_TOKEN -v $(pwd):/workspaces/mastg mastg
 ```
 
 ## Without Docker
 
 > **TLDR for advanced users:**
 >
-> - Clone the MASTG, MASVS and MASWE repos
+> - Clone the `mas-website`, `mastg`, `masvs` and `maswe` repos
 > - Set up a virtual environment
-> - Install dependencies from `src/scripts/requirements.txt`
+> - Install dependencies from `mas-website/requirements.txt`
 > - Add your token as an environment variable: [`export GITHUB_TOKEN=<TOKEN>`](https://github.com/settings/personal-access-tokens)
 > - Run the website using `./run_web.sh`
 
@@ -45,26 +55,25 @@ Before running the website, ensure you have the following installed on your syst
 export GITHUB_TOKEN=<TOKEN>
 ```
 
-Alternatively, you can add your token inside of the `run_web.sh` script. Open the script in a code editor for more information.
+Alternatively, you can add your token inside of the `mas-website/run_web.sh` script. Open the script in a code editor for more information.
 
 ### Step 1: Clone the OWASP MAS Repositories
 
 Run the following commands in your terminal:
 
 ```bash
+git clone https://github.com/OWASP/mas-website.git
 git clone https://github.com/OWASP/mastg.git
 git clone https://github.com/OWASP/masvs.git
 git clone https://github.com/OWASP/maswe.git
 ```
 
-**Note:** We'll just work with the `OWASP/mastg` repo, but the `OWASP/masvs` and `OWASP/maswe` are required for the website to run.
-
-### Step 2: Open the OWASP MASTG Repository in vscode
+### Step 2: Open the OWASP MAS Website Repository in vscode
 
 Run the following commands in your terminal:
 
 ```bash
-cd mastg
+cd mas-website
 code .
 ```
 
