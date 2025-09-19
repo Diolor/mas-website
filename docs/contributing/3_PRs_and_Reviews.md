@@ -87,3 +87,16 @@ If the suggestion you'd like to make cannot be expressed using "suggested change
 2. Enter a comment for the contributor.
 3. Select the type of review you'd like to leave (Comment, Approve or Request Changes).
 4. Click on "Submit review".
+
+### Reviewing Guidelines
+
+Reviews must be thorough. Sometimes and depending on the topic and the author's level of expertise, this process can be as time-consuming as writing a PR yourself.
+
+This is how to approach this:
+
+- review the structure, style, grammar/typos, and alignment with recent tests and demos.
+- carefully review all statements and facts to ensure they are backed by official references, such as Android/iOS documentation
+- validate the demos and testing code by running them yourself
+- ask yourself if these tests are realistic/practical and valuable. Would you report these issues in your tools or during a penetration test?
+- if it's an old test being ported, make sure the author has updated the content. Things on Android and iOS may have changed since the test was created years ago.
+- think about what the author might have forgotten, such as some APIs or additional tests. Then, either request that they be added, add them yourself using suggestions, or capture them as new tickets.
