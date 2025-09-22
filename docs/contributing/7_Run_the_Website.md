@@ -2,32 +2,38 @@
 
 This guide will help you set up and run the OWASP MAS website locally on your machine. Follow the steps below to get started.
 
-## Using Docker
+Steps overview:
 
-The easiest way to run the website is by using Docker:
+1. Prerequisite: [Clone the required repositories](#cloning-the-repositories).
+2. Build the website using one of the following methods:
+    - [Without Docker](#without-docker): You'll need to install Python dependencies manually. 
+    - [Using Docker](#using-docker): Python dependencies come pre-installed.
+
+## Cloning the Repositories
+
+Before you begin, you need to clone the following repositories from GitHub. Open your terminal and run the following commands:
 
 ```bash
 git clone https://github.com/OWASP/mastg.git
-cd mastg
-docker build . -t mastg
-docker run --name mastg -it --rm -p 8000:8000 -u $(id -u):$(id -g) -v $(pwd):/workspaces/mastg mastg
+git clone https://github.com/OWASP/masvs.git
+git clone https://github.com/OWASP/maswe.git
+git clone https://github.com/OWASP/mas-website.git
 ```
 
-This will make the website available on `http://localhost:8000`. By default, interactions with the Github api are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable. Make sure docker can access the token by using `-e GITHUB_TOKEN`:
+**Note 1:** Any local changes in the mastg, masvs, or maswe repositories will be reflected in the website when it is built locally, including errors.
+
+**Note 2:** By default, interactions with the Github API are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable (e.g., in your .zshrc file). Make sure to export this token in your shell before running the website:
 
 ```bash
 export GITHUB_TOKEN=<TOKEN>
-docker run --name mastg -it --rm -p 8000:8000 -u $(id -u):$(id -g) -e GITHUB_TOKEN -v $(pwd):/workspaces/mastg mastg
 ```
 
 ## Without Docker
 
 > **TLDR for advanced users:**
 >
-> - Clone the MASTG, MASVS and MASWE repos
 > - Set up a virtual environment
-> - Install dependencies from `src/scripts/requirements.txt`
-> - Add your token as an environment variable: [`export GITHUB_TOKEN=<TOKEN>`](https://github.com/settings/personal-access-tokens)
+> - Install dependencies from `mas-website/requirements.txt`
 > - Run the website using `./run_web.sh`
 
 ### Prerequisites
@@ -39,36 +45,16 @@ Before running the website, ensure you have the following installed on your syst
 - Git
 - Visual Studio Code (vscode)
 
-[Create a personal access token](https://github.com/settings/personal-access-tokens) on Github and export this token as environment variable (e.g. in your .zshrc file):
-
-```bash
-export GITHUB_TOKEN=<TOKEN>
-```
-
-Alternatively, you can add your token inside of the `run_web.sh` script. Open the script in a code editor for more information.
-
-### Step 1: Clone the OWASP MAS Repositories
+### Step 1: Open the OWASP MAS Website Repository in vscode
 
 Run the following commands in your terminal:
 
 ```bash
-git clone https://github.com/OWASP/mastg.git
-git clone https://github.com/OWASP/masvs.git
-git clone https://github.com/OWASP/maswe.git
-```
-
-**Note:** We'll just work with the `OWASP/mastg` repo, but the `OWASP/masvs` and `OWASP/maswe` are required for the website to run.
-
-### Step 2: Open the OWASP MASTG Repository in vscode
-
-Run the following commands in your terminal:
-
-```bash
-cd mastg
+cd mas-website
 code .
 ```
 
-### Step 3: Install Python Dependencies
+### Step 2: Install Python Dependencies
 
 It is highly recommended to use a virtual environment (venv) to manage dependencies and avoid conflicts with other Python projects.
 
@@ -84,7 +70,7 @@ Use vscode's [`Command Palette`](https://code.visualstudio.com/docs/getstarted/u
    - Press `⌘+j` to open the terminal
    - Run `pip install -r src/scripts/requirements.txt`
 
-### Step 4: Run the Website
+### Step 3: Run the Website
 
 Run the following command in the terminal:
 
@@ -96,7 +82,7 @@ The script simply runs `mkdocs serve` with some additional arguments. Open the s
 
 Access the website at [http://localhost:8000](http://localhost:8000).
 
-### Step 5: Debugging the Website
+### Step 4: Debugging the Website
 
 To debug the website:
 
@@ -104,3 +90,21 @@ To debug the website:
 - Select `Python: MkDocs Serve`
 - Click the green play button to start debugging
 - Set breakpoints in the code as needed
+
+## Using Docker
+
+The following commands will clone the necessary repositories, build the Docker image, and run the website, which will be accessible at [http://localhost:8000](http://localhost:8000).
+
+```bash
+cd mas-website
+docker build . -t mas-website
+docker run --rm -it \
+  -p 8000:8000 \
+  -u $(id -u):$(id -g) \
+  -e GITHUB_TOKEN \
+  -v "$PWD":/workspaces/mas-website \
+  -v "../mastg":/workspaces/mastg \
+  -v "../masvs":/workspaces/masvs \
+  -v "../maswe":/workspaces/maswe \
+  mas-website
+```
