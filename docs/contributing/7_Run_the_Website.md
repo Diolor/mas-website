@@ -2,6 +2,13 @@
 
 This guide will help you set up and run the OWASP MAS website locally on your machine. Follow the steps below to get started.
 
+Steps overview:
+
+1. Prerequisite: [Clone the required repositories](#cloning-the-repositories).
+2. Build the website using one of the following methods:
+    - [Without Docker](#without-docker): You'll need to install Python dependencies manually. 
+    - [Using Docker](#using-docker): Python dependencies come pre-installed.
+
 ## Cloning the Repositories
 
 Before you begin, you need to clone the following repositories from GitHub. Open your terminal and run the following commands:
@@ -13,7 +20,9 @@ git clone https://github.com/OWASP/maswe.git
 git clone https://github.com/OWASP/mas-website.git
 ```
 
-**Note:** By default, interactions with the Github API are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable (e.g., in your .zshrc file). Make sure to export this token in your shell before running the website:
+**Note 1:** Any local changes in the mastg, masvs, or maswe repositories will be reflected in the website when it is built locally, including errors.
+
+**Note 2:** By default, interactions with the Github API are disabled, which means some dynamically retrieved content will not be available. If you want to enable the Github API, [create a personal access token](https://github.com/settings/personal-access-tokens) and export it as an environment variable (e.g., in your .zshrc file). Make sure to export this token in your shell before running the website:
 
 ```bash
 export GITHUB_TOKEN=<TOKEN>
